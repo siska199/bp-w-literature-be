@@ -24,7 +24,7 @@ const dir = path.join(__dirname)
 app.use(express.static(dir))
 
 
-const port = 3009
+const port = process.env.PORT || 3009
 server.listen(port,()=>{
     console.log(`Server listen to port ${port}`)
 })

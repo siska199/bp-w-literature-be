@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const fs = require('fs')
 const {capitalCase} = require('../helper/function')
+const cloudinary = require('../helper/cloudinary')
 
 exports.register = async (req, res)=>{
     const scheme = Joi.object({
@@ -49,10 +50,9 @@ exports.register = async (req, res)=>{
         let profilePath
         const name = Math.floor(Math.random() * 8); //0 until 7
         if(req.body.gender=="Female"){
-            profilePath = `http://localhost:3009/uploud/avatar/female${name}.png`
+            profilePath  = `avatar/female${name}.png`
         }else{
-            console.log("male")
-            profilePath = `http://localhost:3009/uploud/avatar/male${name}.png`
+            profilePath = `avatar/male${name}.png`
         }
 
         const userCreated = await user.create({
@@ -138,12 +138,10 @@ exports.login = async (req, res) =>{
                     address : userFinded.address,
                     phone : userFinded.phone,
                     status : userFinded.status,
-                    image: userFinded.image,
+                    image: cloudinary.url(userFinded.image, {secure: true}),
                 }
             })
         }
-        console.log("Masuk")
-       console.log(userFinded)
     } catch (error) {
         res.status(500).send({
             status: 'failed',
@@ -154,12 +152,19 @@ exports.login = async (req, res) =>{
 
 exports.getUsers = async (req, res) =>{
     try {
-        const dataUser = await user.findAll({
+        let dataUser = await user.findAll({
             attributes : {
                 exclude : ['createdAt','updatedAt','password']
-            }
+            },
+            raw : true,
+            nest : true
         })
-
+        dataUser = dataUser.map(data=>{
+            return({
+                ...data,
+                image : cloudinary.url(data.image, {secure: true})
+            })
+        })
         res.status(200).send({
             status: 'success',
             data : dataUser
@@ -175,14 +180,23 @@ exports.getUsers = async (req, res) =>{
 
 exports.getUser = async (req, res) =>{
     try {
-        const dataUser = await user.findOne({
+        let dataUser = await user.findOne({
             where:{
                 id : req.user.id
             },  
             attributes : {
                 exclude : ['createdAt','updatedAt']
-            }
+            },
+            raw : true,
+            nest : true
         })
+        console.log("public_id: ", dataUser.image)
+        dataUser = {
+            ...dataUser,
+            image: cloudinary.url(dataUser.image, {secure: true})
+        }
+
+        console.log("Data User: ", dataUser)
         res.status(200).send({
             status: 'success',
             data : dataUser
@@ -206,15 +220,21 @@ exports.updateUser = async (req, res) =>{
                     id : req.user.id
                 }
             })
-            const pathProfile = dataUser.image.substring(22, (dataUser.image).length+1)
-            if(pathProfile.match(/uploud\/avatar/g) == null){
-                console.log("Image Not same: ", dataUser.image)
-                const pathProfile = dataUser.image.substring(22, (dataUser.image).length+1)
-                fs.unlinkSync(pathProfile)
+
+            if(!dataUser.image.match(/avatar\//g)){
+                console.log("image is not default profile")
+                await cloudinary.destroy(dataUser.image, (res)=>console.log("Destroy success: ", res))
             }
+
+            const image = await cloudinary.uploader.upload(req.file.path,{
+                folder : 'profile',
+                use_filename : true,
+                unique_name : false
+            })
+            console.log("image_public_id: ", image.public_id)
             data = {
                 ...req.body,
-                image : 'http://localhost:3009/uploud/profile/'+req.file.filename
+                image : image.profile_id
             }
         }else if(req.body.fullName){
             data = {
@@ -258,9 +278,8 @@ exports.deleteUser = async (req, res) =>{
             })
         }
 
-        const pathProfile = dataUser.image.substring(22, (dataUser.image).length+1)
-        if(pathProfile.match(/uploud\/avatar/g) == null){
-            fs.unlinkSync(pathProfile)
+        if(!userData.image.match(/avatar\//g)){
+            await cloudinary.destroy(userData.image, (res)=>console.log("Destroy success: ", res))
         }
 
         await user.destroy({
@@ -308,7 +327,7 @@ exports.checkAuth = async (req, res)=>{
                 address : dataUser.address,
                 phone : dataUser.phone,
                 status : dataUser.status,
-                image: dataUser.image,
+                image: cloudinary.url(dataUser.image, {secure: true}),
               }
           })
     } catch (error) {

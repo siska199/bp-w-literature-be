@@ -4,7 +4,7 @@
   "description": "Backend files from NIS LITERATURE project",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -18,6 +18,7 @@
   "homepage": "https://github.com/siska199/NIS_literature#readme",
   "dependencies": {
     "bcrypt": "^5.0.1",
+    "cloudinary": "^1.27.1",
     "concurrently": "^6.4.0",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",

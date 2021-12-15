@@ -1,6 +1,7 @@
 const path = require('path');
 const pdf = require('pdf-poppler');
 const fs = require('fs')
+const cloudinary = require('./cloudinary')
 
 exports.capitalCase = (sentence)=> {
     let array = sentence.split(' ')
@@ -44,17 +45,16 @@ exports.nameFormat=(fullname)=>{
 
 
 exports.thumbPDF=async(input, name)=>{
-    let file = input
-    let opts = {
-        format: 'jpeg',
-        out_dir: "uploud/thumbnail",
-        out_prefix: name,
-        page: 1
-    }
+    try {
+        let file = input
+        let opts = {
+            format: 'jpeg',
+            out_dir: "uploud/thumbnail",
+            out_prefix: name,
+            page: 1
+        }
 
-    pdf.convert(file, opts)
-    .then(res => {
-
+        await pdf.convert(file, opts)
         let dirCount = fs.readdirSync('uploud/thumbnail')
         const filter = new RegExp(name,"ig")
 
@@ -63,9 +63,17 @@ exports.thumbPDF=async(input, name)=>{
         })
 
         fs.rename('uploud/thumbnail/'+files[0], 'uploud/thumbnail/'+name+'.jpg', () => {
-          });
-             
-    })
-    .catch(error => {
-    })
+        });
+
+        const thumbPDFfile = await cloudinary.uploader.upload('uploud/thumbnail/'+name+'.jpg',{
+            folder: 'thumbnail',
+            use_filename: true,
+            unique_filename : false
+        })
+
+    } catch (error) {
+        console.log(error)
+    }
+
+    
 }

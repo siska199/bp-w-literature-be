@@ -2,7 +2,7 @@ const { literature, year, collection, user} = require('../../models')
 const fs = require('fs')
 const Joi = require('joi') 
 const {capitalCase, nameFormat, thumbPDF} = require('../helper/function')
-
+const cloudinary =  require('../helper/cloudinary')
 const yearInformation = 
     {
         model : year,
@@ -23,6 +23,7 @@ const userInformation =
 const litExclude =   ["createdAt", "updatedAt"]
 
 exports.addLit = async (req, res) =>{
+    console.log("add lit")
         const scheme = Joi.object({
             title: Joi.string().required(),
             publicationDate: Joi.string().required(),
@@ -74,6 +75,15 @@ exports.addLit = async (req, res) =>{
         const input = 'uploud/pdf/'+req.file.filename
         const name = String(Date.now())
         await thumbPDF(input, name)
+        console.log("File path: ", req.file.path)
+
+        const filePDF = await cloudinary.uploader.upload(req.file.path,{
+            folder: 'pdf',
+            use_filename: true,
+            unique_filename : false
+        })
+        console.log("File pdf enter: ", filePDF)
+
 
         const litAdded = await literature.create({
             ...data,
@@ -82,8 +92,8 @@ exports.addLit = async (req, res) =>{
             idUser : req.user.id, 
             status: "Pending",
             publicationDate,
-            file : 'http://localhost:3009/uploud/pdf/'+req.file.filename,
-            thumbnail : 'http://localhost:3009/uploud/thumbnail/'+name+'.jpg',
+            file : filePDF.public_id,
+            thumbnail : 'thumbnail/'+name+'.jpg',
             author : author1.join(', ')
         })
 
@@ -103,8 +113,8 @@ exports.addLit = async (req, res) =>{
             data : litData ,
         })
     } catch (error) {
+        console.log(error)
         fs.unlinkSync('uploud/pdf/'+req.file.filename)
-
         res.status(500).send({
             status: 'failed',
             message:'Server error'
@@ -122,9 +132,20 @@ exports.getLits  = async(req, res)=>{
                             include: [yearInformation,userInformation],
                             attributes:{
                                 exclude : litExclude          
-                            }
+                            },
+                            raw : true,
+                            nest : true
                         })
+        filterData = filterData.map(data=>{
+            return({
+                ...data,
+                file : cloudinary.url(data.file, {secure: true}),
+                thumbnail : cloudinary.url(data.thumbnail, {secure: true}),
+            })
+        })
         
+        console.log("Result get literature: ", filterData)
+
         if(status){
             filterData = filterData.filter(f=>f.status==`${status}`)
         }
@@ -143,6 +164,7 @@ exports.getLits  = async(req, res)=>{
             const filter = new RegExp(title,"ig")
             filterData = filterData.filter(f=>f.title.match(filter))
         }
+
         //Arrange Data Pnding-Proove-Cancel:
         const pendingData = filterData.filter(f=>f.status=="Pending")
         const approveData = filterData.filter(f=>f.status=="Approve")
@@ -172,16 +194,24 @@ exports.getLits  = async(req, res)=>{
 
 exports.getLit = async (req, res)=>{
     try {
-        const lit = await literature.findOne({
+        let lit = await literature.findOne({
             include: yearInformation,
             where:{
                 id : req.params.id
             },
             attributes:{
                 exclude :  litExclude 
-            }
-        })
+            },
+            raw : true,
+            nest : true
 
+        })
+        lit = {
+            ...lit,
+            file : cloudinary.url(lit.file, {secure: true}),
+            thumbnail : cloudinary.url(lit.thumbnail, {secure: true}), 
+        }
+        console.log("get Literature: ",lit)
         res.status(200).send({
             status : 'success',
             data : lit
@@ -196,15 +226,28 @@ exports.getLit = async (req, res)=>{
 
 exports.getMyLits = async (req, res)=>{
     try {
-        const lit = await literature.findAll({
+        let lit = await literature.findAll({
             include: yearInformation,
             where:{
                 idUser : req.user.id
             },
             attributes:{
                 exclude :  litExclude 
-            }
+            },
+            raw : true,
+            nest : true
+
         })
+
+        lit = lit.map(data=>{
+            return({
+                ...data,
+                file : cloudinary.url(data.file, {secure: true}),
+                thumbnail : cloudinary.url(data.thumbnail, {secure: true}),
+            })
+        })
+        console.log("my collections: ", lit)
+
         res.status(200).send({
             status : 'success',
             data : lit
@@ -219,7 +262,7 @@ exports.getMyLits = async (req, res)=>{
 
 exports.getMyCollections = async(req, res)=>{
     try{
-        const lit = await literature.findAll({
+        let lit = await literature.findAll({
             include: [
                 yearInformation,
                 {
@@ -235,9 +278,19 @@ exports.getMyCollections = async(req, res)=>{
             ],
             attributes:{
                 exclude :  litExclude 
-            }
-        })
+            },
+            raw : true,
+            nest : true
 
+        })
+        lit = lit.map(data=>{
+            return({
+                ...data,
+                file : cloudinary.url(data.file, {secure: true}),
+                thumbnail : cloudinary.url(data.thumbnail, {secure: true}),
+            })
+        })
+        console.log("my collections: ", lit)
         res.status(200).send({
             status : 'success',
             data : lit
@@ -260,11 +313,28 @@ exports.editLit = async (req,res)=>{
         })
         let data
         if(req.file){
+
+            const input = 'uploud/pdf/'+req.file.filename
+            const name = String(Date.now())
+            await thumbPDF(input, name)
+            console.log("File path: ", req.file.path)
+
+            const filePDF = await cloudinary.uploader.upload(req.file.path,{
+                folder: 'pdf',
+                use_filename: true,
+                unique_filename : false
+            })
+            console.log("File pdf enter: ", filePDF)
+    
+
             data = {
                 ...req.body,
-                file : 'http://localhost:3009/uploud/pdf/'+req.file.filename
+                file : cloudinary.url(filePDF , {secure: true}),
+                thumbnail : 'thumbnail/'+name+'.jpg',
             }
-            fs.unlinkSync(litFinded.file.substring(22,litFinded.file.length))
+
+            await cloudinary.destroy(litFinded .file,(res)=>console.log(res))
+            await cloudinary.destroy(litFinded .thumbnail,(res)=>console.log(res))
 
         }else{
             data = req.body
@@ -306,8 +376,8 @@ exports.deleteLit = async (req, res)=>{
         })
 
         if(litData){
-            fs.unlinkSync(litData.file.substring(22,litData.file.length))
-
+            await cloudinary.destroy(litData.file,(res)=>console.log(res))
+            await cloudinary.destroy(litData.thumbnail,(res)=>console.log(res))
         }
 
         await literature.destroy({
@@ -336,9 +406,7 @@ exports.downloadLit=async(req, res)=>{
        const litFinded = await literature.findOne({
             where :{id}
         })
-
-        const pathFile = litFinded.file.substring(22,litFinded.file.length)
-        res.download(pathFile)
+        res.download('uploud/'+litFinded.file+'.pdf')
 
     } catch (error) {
         res.status(500).send({
