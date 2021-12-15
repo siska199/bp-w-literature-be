@@ -4,7 +4,9 @@
   "description": "Backend files from NIS LITERATURE project",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "heroku-prebuild": "npm install -f",
+    "heroku-postbuild": "npm run build"
   },
   "author": "Siska Apriana Rifianti",
   "license": "ISC",
