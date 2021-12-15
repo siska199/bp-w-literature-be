@@ -9,6 +9,7 @@
   "author": "Siska Apriana Rifianti",
   "license": "ISC",
   "dependencies": {
+    "@heroku-cli/plugin-buildpacks": "^7.54.0",
     "bcrypt": "^5.0.1",
     "cloudinary": "^1.27.1",
     "concurrently": "^6.4.0",
