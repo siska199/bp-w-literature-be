@@ -1,2 +1,2 @@
-release: node_modules/.bin/sequelize db:migrate; node_modules/.bin/sequelize db:seed:all;
-web:node server.js
+release: sequelize db:migrate:undo:all && sequelize db:migrate; sequelize db:seed:all
+web: node index.js
