@@ -6,16 +6,8 @@
   "scripts": {
     "start": "node index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/siska199/NIS_literature.git"
-  },
   "author": "Siska Apriana Rifianti",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/siska199/NIS_literature/issues"
-  },
-  "homepage": "https://github.com/siska199/NIS_literature#readme",
   "dependencies": {
     "bcrypt": "^5.0.1",
     "cloudinary": "^1.27.1",
