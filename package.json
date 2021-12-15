@@ -1,0 +1,39 @@
+{
+  "name": "backend199",
+  "version": "1.0.0",
+  "description": "Backend files from NIS LITERATURE project",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siska199/NIS_literature.git"
+  },
+  "author": "Siska Apriana Rifianti",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/siska199/NIS_literature/issues"
+  },
+  "homepage": "https://github.com/siska199/NIS_literature#readme",
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "concurrently": "^6.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "fs": "^0.0.1-security",
+    "joi": "^17.4.2",
+    "jsonwebtoken": "^8.5.1",
+    "multer": "^1.4.3",
+    "mysql2": "^2.3.3",
+    "pdf-poppler": "^0.2.1",
+    "sequelize": "^6.12.0-alpha.1",
+    "sequelize-cli": "^6.3.0",
+    "socket.io": "^4.4.0",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
