@@ -1,7 +1,7 @@
-const path = require('path');
+// const path = require('path');
 // const pdf = require('pdf-poppler');
-const fs = require('fs')
-const cloudinary = require('./cloudinary')
+// const fs = require('fs')
+// const cloudinary = require('./cloudinary')
 
 exports.capitalCase = (sentence)=> {
     let array = sentence.split(' ')

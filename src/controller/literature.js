@@ -72,8 +72,8 @@ exports.addLit = async (req, res) =>{
             return(nameFormat(d))
         })
 
-        const input = 'uploud/pdf/'+req.file.filename
-        const name = String(Date.now())
+        // const input = 'uploud/pdf/'+req.file.filename
+        // const name = String(Date.now())
         // await thumbPDF(input, name)
         console.log("File path: ", req.file.path)
 
@@ -84,6 +84,11 @@ exports.addLit = async (req, res) =>{
         })
         console.log("File pdf enter: ", filePDF)
 
+        
+        let forThumb = cloudinary.image(filePDF.public_id, {page: 1, format : 'png'}).split(' ')[1]
+        console.log("forThumb: ", forThumb)
+        forThumb = forThumb.split('=')[1]
+        console.log("finally: ",forThumb )
 
         const litAdded = await literature.create({
             ...data,
@@ -93,7 +98,7 @@ exports.addLit = async (req, res) =>{
             status: "Pending",
             publicationDate,
             file : filePDF.public_id,
-            thumbnail : 'thumbnail/'+name+'.jpg',
+            thumbnail : `${forThumb.replaceAll("'", '')}`,
             author : author1.join(', ')
         })
 
@@ -105,9 +110,11 @@ exports.addLit = async (req, res) =>{
             include: [yearInformation,userInformation],
             attributes:{
                 exclude : litExclude 
-            }
+            },
+            raw : true,
+            nest : true
         }) 
-
+        console.log("final data: ",litData)
         res.send({
             status : 'sucsess',
             data : litData ,
@@ -140,7 +147,6 @@ exports.getLits  = async(req, res)=>{
             return({
                 ...data,
                 file : cloudinary.url(data.file, {secure: true}),
-                thumbnail : cloudinary.url(data.thumbnail, {secure: true}),
             })
         })
         
@@ -209,7 +215,6 @@ exports.getLit = async (req, res)=>{
         lit = {
             ...lit,
             file : cloudinary.url(lit.file, {secure: true}),
-            thumbnail : cloudinary.url(lit.thumbnail, {secure: true}), 
         }
         console.log("get Literature: ",lit)
         res.status(200).send({
@@ -243,7 +248,6 @@ exports.getMyLits = async (req, res)=>{
             return({
                 ...data,
                 file : cloudinary.url(data.file, {secure: true}),
-                thumbnail : cloudinary.url(data.thumbnail, {secure: true}),
             })
         })
         console.log("my collections: ", lit)
@@ -287,7 +291,6 @@ exports.getMyCollections = async(req, res)=>{
             return({
                 ...data,
                 file : cloudinary.url(data.file, {secure: true}),
-                thumbnail : cloudinary.url(data.thumbnail, {secure: true}),
             })
         })
         console.log("my collections: ", lit)
@@ -330,11 +333,9 @@ exports.editLit = async (req,res)=>{
             data = {
                 ...req.body,
                 file : cloudinary.url(filePDF , {secure: true}),
-                thumbnail : 'thumbnail/'+name+'.jpg',
             }
 
             await cloudinary.destroy(litFinded .file,(res)=>console.log(res))
-            await cloudinary.destroy(litFinded .thumbnail,(res)=>console.log(res))
 
         }else{
             data = req.body
@@ -377,7 +378,6 @@ exports.deleteLit = async (req, res)=>{
 
         if(litData){
             await cloudinary.destroy(litData.file,(res)=>console.log(res))
-            await cloudinary.destroy(litData.thumbnail,(res)=>console.log(res))
         }
 
         await literature.destroy({

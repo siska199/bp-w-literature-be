@@ -14,6 +14,7 @@ const io = new Server(server,{
         origin : 'https://literature199.netlify.app' || "http://localhost:3000"
     }
 })
+
 require('./src/socket')(io)
 
 app.use(express.json())
