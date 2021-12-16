@@ -1,7 +1,7 @@
 const { literature, year, collection, user} = require('../../models')
 const fs = require('fs')
 const Joi = require('joi') 
-const {capitalCase, nameFormat, thumbPDF} = require('../helper/function')
+const {capitalCase, nameFormat} = require('../helper/function')
 const cloudinary =  require('../helper/cloudinary')
 const yearInformation = 
     {
@@ -74,7 +74,7 @@ exports.addLit = async (req, res) =>{
 
         const input = 'uploud/pdf/'+req.file.filename
         const name = String(Date.now())
-        await thumbPDF(input, name)
+        // await thumbPDF(input, name)
         console.log("File path: ", req.file.path)
 
         const filePDF = await cloudinary.uploader.upload(req.file.path,{
@@ -316,7 +316,7 @@ exports.editLit = async (req,res)=>{
 
             const input = 'uploud/pdf/'+req.file.filename
             const name = String(Date.now())
-            await thumbPDF(input, name)
+            // await thumbPDF(input, name)
             console.log("File path: ", req.file.path)
 
             const filePDF = await cloudinary.uploader.upload(req.file.path,{
