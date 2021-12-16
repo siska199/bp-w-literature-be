@@ -7,9 +7,8 @@
   },
   "main": "index.js",
   "scripts": {
-    "postinstall": "npm run production",
-    "heroku-prebuild": "npm install -f",
-    "heroku-postbuild": "npm run production"
+    "start": "node index.js",
+    "heroku-postbuild": "npm run build"
   },
   "author": "Siska Apriana Rifianti",
   "license": "ISC",
