@@ -7,7 +7,9 @@
   },
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "nodemon index.js",
+    "build": "ng build",
+    "heroku-postbuild": "ng build --prod"
   },
   "author": "Siska Apriana Rifianti",
   "license": "ISC",

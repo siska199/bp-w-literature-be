@@ -51,7 +51,8 @@ exports.thumbPDF=async(input, name)=>{
             format: 'jpeg',
             out_dir: "uploud/thumbnail",
             out_prefix: name,
-            page: 1
+            page: 1,
+
         }
 
         await pdf.convert(file, opts)
@@ -65,7 +66,7 @@ exports.thumbPDF=async(input, name)=>{
         fs.rename('uploud/thumbnail/'+files[0], 'uploud/thumbnail/'+name+'.jpg', () => {
         });
 
-        const thumbPDFfile = await cloudinary.uploader.upload('uploud/thumbnail/'+name+'.jpg',{
+        await cloudinary.uploader.upload('uploud/thumbnail/'+name+'.jpg',{
             folder: 'thumbnail',
             use_filename: true,
             unique_filename : false
