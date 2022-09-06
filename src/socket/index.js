@@ -46,8 +46,13 @@ const socketIo = (io) => {
           attributes: {
             exclude: ["updatedAt", "password"],
           },
+          // raw: true,
+          // nest: true,
         });
-        // console.log("admin contact: ", adminContact);
+        adminContact = JSON.parse(JSON.stringify(adminContact)).map((data) => ({
+          ...data,
+          image: cloudinary.url(data.image, { secure: true }),
+        }));
         socket.emit("admin contact", adminContact);
       } catch (error) {
         console.log(error);
@@ -80,8 +85,15 @@ const socketIo = (io) => {
           attibutes: {
             exclude: ["updatedAt", "password"],
           },
+          // raw: true,
+          // nest: true,
         });
-        // console.log("customer contact data: ", customerContacts);
+        customerContacts = JSON.parse(JSON.stringify(customerContacts)).map(
+          (data) => ({
+            ...data,
+            image: cloudinary.url(data.image, { secure: true }),
+          })
+        );
         socket.emit("user contact", customerContacts);
       } catch (error) {
         new Error(error);
@@ -140,7 +152,6 @@ const socketIo = (io) => {
             image: cloudinary.url(data.sender.image, { secure: true }),
           },
         }));
-        console.log("message: ", data);
         socket.emit("messages", data);
       } catch (error) {
         new Error(error);
@@ -172,7 +183,7 @@ const socketIo = (io) => {
 
     //5. Disconnect:
     socket.on("disconnect", () => {
-      console.log("user connected", socket.id);
+      // console.log("user connected", socket.id);
       delete connectedUser[userId];
     });
   });
