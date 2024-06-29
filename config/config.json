@@ -1,9 +1,9 @@
 {
   "development": {
-    "username": "root",
-    "password": null,
-    "database": "literature199",
-    "host": "localhost",
+    "username": "uyk5v1gattd7xrpl",
+    "password": "t8ONL9Kv6BQOhLWOI70e",
+    "database": "b7dgm311s9fv0sr1lwwv",
+    "host": "b7dgm311s9fv0sr1lwwv-mysql.services.clever-cloud.com",
     "dialect": "mysql",
     "logging":false
   },
