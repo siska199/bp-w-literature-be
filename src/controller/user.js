@@ -72,9 +72,6 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
-    if (req.file) {
-      fs.unlinkSync("uploud/profile/" + req.file.filename);
-    }
     res.status(500).send({
       status: "faild",
       message: `${error}`,
@@ -130,6 +127,10 @@ exports.login = async (req, res) => {
       }
 
       const token = jwt.sign({ id: userFinded.id }, process.env.TOKEN_USER);
+
+      const image_url = await cloudinary.getFileUrlFromClaudinary({
+        publicId : userFinded?.image
+      })
       res.status(200).send({
         status: "success",
         message: "Login success",
@@ -141,7 +142,7 @@ exports.login = async (req, res) => {
           address: userFinded.address,
           phone: userFinded.phone,
           status: userFinded.status,
-          image: cloudinary.url(userFinded.image, { secure: true }),
+          image:  image_url ,
         },
       });
     }
@@ -162,10 +163,14 @@ exports.getUsers = async (req, res) => {
       raw: true,
       nest: true,
     });
+
+    const image_url = await cloudinary.getFileUrlFromClaudinary({
+      publicId : dataUser?.image
+    })
     dataUser = dataUser.map((data) => {
       return {
         ...data,
-        image: cloudinary.url(data.image, { secure: true }),
+        image: image_url,
       };
     });
     res.status(200).send({
@@ -192,9 +197,12 @@ exports.getUser = async (req, res) => {
       raw: true,
       nest: true,
     });
+    const image_url = await cloudinary.getFileUrlFromClaudinary({
+      publicId : dataUser?.image
+    })
     dataUser = {
       ...dataUser,
-      image: cloudinary.url(dataUser.image, { secure: true }),
+      image: image_url ,
     };
 
     res.status(200).send({
@@ -223,14 +231,8 @@ exports.updateUser = async (req, res) => {
         await cloudinary.destroy(dataUser.image, (res) => {});
       }
 
-      const image = await cloudinary.uploader.upload(req.file.path, {
-        folder: "profile",
-        use_filename: true,
-        unique_name: false,
-      });
       data = {
         ...req.body,
-        image: image.profile_id,
       };
     } else if (req.body.fullName) {
       data = {
@@ -311,6 +313,7 @@ exports.checkAuth = async (req, res) => {
       });
     }
 
+    const image_url = await cloudinary?.getFileUrlFromClaudinary(dataUser.image)
     res.status(200).send({
       status: "success",
       data: {
@@ -321,7 +324,7 @@ exports.checkAuth = async (req, res) => {
         address: dataUser.address,
         phone: dataUser.phone,
         status: dataUser.status,
-        image: cloudinary.url(dataUser.image, { secure: true }),
+        image: image_url,
       },
     });
   } catch (error) {

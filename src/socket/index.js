@@ -49,10 +49,19 @@ const socketIo = (io) => {
           // raw: true,
           // nest: true,
         });
-        adminContact = JSON.parse(JSON.stringify(adminContact)).map((data) => ({
-          ...data,
-          image: cloudinary.url(data.image, { secure: true }),
-        }));
+
+        adminContact = await Promise.all(
+          JSON.parse(JSON.stringify(adminContact)).map((data) =>{
+            
+            const image_url = cloudinary?.getFileUrlFromClaudinary({
+              publicId : data.image
+            })
+            return  ({
+              ...data,
+              image:image_url ,
+            })
+          })
+        ) ;
         socket.emit("admin contact", adminContact);
       } catch (error) {
         console.log(error);
@@ -88,11 +97,20 @@ const socketIo = (io) => {
           // raw: true,
           // nest: true,
         });
-        customerContacts = JSON.parse(JSON.stringify(customerContacts)).map(
-          (data) => ({
-            ...data,
-            image: cloudinary.url(data.image, { secure: true }),
-          })
+
+        customerContacts = await Promise.all(
+          JSON.parse(JSON.stringify(customerContacts)).map(
+            async(data) => {
+              
+              const image_url = cloudinary?.getFileUrlFromClaudinary({
+                publicId : data.image
+              })
+              return ({
+                ...data,
+                image: image_url,
+              })
+            }
+          )
         );
         socket.emit("user contact", customerContacts);
       } catch (error) {
@@ -141,17 +159,27 @@ const socketIo = (io) => {
           raw: true,
           nest: true,
         });
-        data = data.map((data) => ({
-          ...data,
-          recipient: {
-            ...data.recipient,
-            image: cloudinary.url(data.recipient.image, { secure: true }),
-          },
-          sender: {
-            ...data.sender,
-            image: cloudinary.url(data.sender.image, { secure: true }),
-          },
-        }));
+        data = await Promise.all( data.map(async(data) =>{
+          const recipient_image_url = await cloudinary.getFileUrlFromClaudinary({
+            publicId:data.recipient.image
+          })
+          const sender_image_url = await cloudinary.getFileUrlFromClaudinary({
+            publicId:data.sender.image
+          })
+          return  ({
+            ...data,
+            recipient: {
+              ...data.recipient,
+              image: recipient_image_url,
+            },
+            sender: {
+              ...data.sender,
+              image: sender_image_url,
+            },
+          })
+        }))
+        
+       ;
         socket.emit("messages", data);
       } catch (error) {
         new Error(error);

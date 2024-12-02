@@ -35,7 +35,7 @@ module.exports = {
           address: 'Jl. Gunung Kawi',
           status: 'admin',
           gender: 'Female',
-          image: 'https://res.cloudinary.com/university-state-of-malang-city/image/upload/v1639533924/avatar/male6.png'
+          image: 'avatar/male6'
       }], {});
   },
 

@@ -1,84 +1,99 @@
-const multer = require('multer')
+const {uploadFileToCloudinary}  = require("../helper/cloudinary");
+const multer = require("multer");
 
-exports.uploudFile = (fileType) =>{
-    const storage = multer.diskStorage({
-        destination : function(req, file, cb){
-            if(fileType=='pdf'){
-                cb(null, "uploud/pdf")
-            }else if(fileType=='image'){
-                cb(null, "uploud/profile")
-            }
-        },
-        filename : function(req, file, cb){
-            cb(null, Date.now()+'-'+file.originalname.replace(/\s/g,'')) // \s replace any white space https://regexr.com/
+
+exports.uploudFile = (fileRules) => {
+  const storage = multer.memoryStorage();
+
+  const upload = multer({
+    storage,
+    fileFilter: (
+      req,
+      file,
+      cb
+    ) => {
+      const { fieldname } = file;
+      const rules = fileRules[fieldname];
+
+      if (!rules)
+        return cb(
+          new Error(`No validation rules defined for field: ${fieldname}`)
+        );
+
+      const { types } = rules;
+      const isAllowedType = types
+        .map((type) => type.toLowerCase())
+        .filter((type) => {
+          return file.mimetype.toLowerCase()?.includes(type);
+        })[0];
+
+      if (!isAllowedType)
+        return cb(
+          new Error(
+            `Invalid file type for ${fieldname}. Allowed types: ${types.join(
+              ", "
+            )}`
+          )
+        );
+      cb(null, true);
+    },
+  });
+  const listFieldFile = Object.entries(fileRules).map(([key, value]) => ({
+    name: key,
+    maxCount: value?.maxCount,
+  }));
+
+  return async (req, res, next) => {
+    upload.fields(listFieldFile)(req, res, async (err) => {
+      if (err) next(new Error(err.message, 400));
+      await uploadFilesToClaudinary(req, next, fileRules);
+    });
+  };
+};
+
+const uploadFilesToClaudinary = async (
+  req,
+  next,
+  fileRules
+) => {
+  if (!req.files) return next(new Error(`No files were uploaded`, 400));
+
+  for (const field in req.files) {
+    const fileArray = req?.files?.[field];
+    if (!Array.isArray(fileArray)) return null;
+
+    await Promise.all(
+      fileArray?.map(async (file, i) => {
+        const fileSize = file.buffer.length;
+        const rules = fileRules[field];
+
+        if (fileSize > (rules?.size || 5) * 1024 * 1024) {
+          next(
+            new CustomError(
+              `File size exceeds the limit for ${field}. Maximum size is ${rules.size} MB.`,
+              400
+            )
+          );
         }
-    })
 
-    const fileFilter = function(req, file, cb){
-        if(fileType=='pdf'){
-            if(!file.originalname.match(/\.pdf/)){
-                req.fileValidationError = {
-                    message : 'Only pdf files are allowed'
-                }
-                return cb(new Error('Only pdf files are allowed'), false)
-            }
-            cb(null, true)
+        const result = await uploadFileToCloudinary(
+          file,
+          fileRules[`${field}`].folder
+        );
+
+        if (fileArray?.length > 1) {
+
+          req.body[`${field}`] = (
+            Array.isArray(req.body[`${field}`])
+              ? req.body[`${field}`].concat(result?.public_id)
+              : [req.body[`${field}`], result?.public_id]
+          )?.filter((data) => data);
+        } else {
+          req.body[`${field}`] = result?.public_id;
         }
+      })
+    );
+  }
+  next();
+};
 
-        else if(fileType=='image'){
-            if(!file.originalname.match(/\.(|jpg|JPG|jpeg|JPEG|png|PNG)/)){
-                req.fileValidationError = {
-                    message : 'Only image files are allowed'
-                }
-                return cb(new Error('Only image files are allowed'), false)
-            }
-            cb(null, true)
-        }
-
-
-    }
-    const sizeInMB = 100;
-    const maxSize = sizeInMB*1000*1000
-
-    const uploud = multer({
-        storage,
-        fileFilter,
-        limits :{
-            fileSize:maxSize
-        }
-    }).single(fileType)
-
-    return(req, res, next)=>{
-        uploud(req, res, function(err){
-            if(req.fileValidationError){
-                return res.status(400).send(req.fileValidationError)
-            }
-
-            if(!err){
-                if(!fileType=='pdf' || !fileType=='image' && !req.files){
-                    return res.status(400).send({
-                        message: 'Please select files to uploud'
-                    })
-                }
-            }
-
-            if(!fileType=='pdf' || !fileType=='image' && !req.file){
-                return res.status(400).send({
-                    message: 'Please select file to uploud'
-                })
-            }
-
-            if(err){
-                if(err.code=="LIMIT_FILE_SIZE"){
-                    return res.status(400).send({
-                        message: 'Max file sized 10MB'
-                    })
-                }
-                return res.status(400).send(err)
-            }
-
-            return next()
-
-        })
-    }
-}

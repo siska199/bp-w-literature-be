@@ -1,5 +1,4 @@
 const { literature, year, collection, user } = require("../../models");
-const fs = require("fs");
 const Joi = require("joi");
 const { capitalCase, nameFormat } = require("../helper/function");
 const cloudinary = require("../helper/cloudinary");
@@ -29,7 +28,7 @@ exports.addLit = async (req, res) => {
     author: Joi.string().required(),
   });
 
-  const { file, ...dataVal } = req.body;
+  const { pdf:file, ...dataVal } = req.body;
   const { error } = scheme.validate(dataVal);
 
   if (error) {
@@ -41,9 +40,6 @@ exports.addLit = async (req, res) => {
         return e;
       }
     });
-    if (req.files) {
-      fs.unlinkSync("uploud/pdf/" + file.filename);
-    }
     return res.status(400).send({
       status: "error",
       message: err.join(" "),
@@ -51,7 +47,7 @@ exports.addLit = async (req, res) => {
   }
 
   try {
-    const { publicationDate, file, ...data } = req.body;
+    const { publicationDate, pdf:file, ...data } = req.body;
     const yearData = publicationDate.split("-")[0].toString();
 
     let yearLit = await year.findOne({
@@ -64,25 +60,11 @@ exports.addLit = async (req, res) => {
       yearLit = await year.create({ year: yearData });
     }
 
-    let author1 = data.author.split(",").map((d) => {
+    let author1 = data?.author?.split(",").map((d) => {
       return nameFormat(d);
     });
 
-    // const input = 'uploud/pdf/'+req.file.filename
-    // const name = String(Date.now())
-    // await thumbPDF(input, name)
-
-    const filePDF = await cloudinary.uploader.upload(req.file.path, {
-      folder: "pdf",
-      use_filename: true,
-      unique_filename: false,
-    });
-
-    let forThumb = cloudinary
-      .image(filePDF.public_id, { page: 1, format: "png" })
-      .split(" ")[1];
-    forThumb = forThumb.split("=")[1];
-
+    const thumbnail = await cloudinary?.getThumbnailFromClaudinary(file)
     const litAdded = await literature.create({
       ...data,
       title: capitalCase(data.title),
@@ -90,9 +72,9 @@ exports.addLit = async (req, res) => {
       idUser: req.user.id,
       status: "Pending",
       publicationDate,
-      file: filePDF.public_id,
-      thumbnail: `${forThumb.replaceAll("'", "")}`,
+      thumbnail,
       author: author1.join(", "),
+      file
     });
 
     const litData = await literature.findOne({
@@ -111,7 +93,6 @@ exports.addLit = async (req, res) => {
       data: litData,
     });
   } catch (error) {
-    fs.unlinkSync("uploud/pdf/" + req.file.filename);
     res.status(500).send({
       status: "failed",
       message: `${error}`,
@@ -133,12 +114,16 @@ exports.getLits = async (req, res) => {
       raw: true,
       nest: true,
     });
-    filterData = filterData.map((data) => {
+
+    filterData = await Promise.all(filterData.map(async(data) => {
+      const file_url = await cloudinary?.getFileUrlFromClaudinary({
+        public_id: data?.file
+      })
       return {
         ...data,
-        file: cloudinary.url(data.file, { secure: true }),
+        file: file_url ,
       };
-    });
+    }))
 
     if (status) {
       filterData = filterData.filter((f) => f.status == `${status}`);
@@ -195,9 +180,14 @@ exports.getLit = async (req, res) => {
       raw: true,
       nest: true,
     });
+
+    const file_url = await cloudinary?.getFileUrlFromClaudinary({
+      public_id:lit?.file
+    })
+
     lit = {
       ...lit,
-      file: cloudinary.url(lit.file, { secure: true }),
+      file : file_url,
     };
     res.status(200).send({
       status: "success",
@@ -225,12 +215,15 @@ exports.getMyLits = async (req, res) => {
       nest: true,
     });
 
-    lit = lit.map((data) => {
+    lit = await Promise.all(lit.map(async(data) => {
+      const file_url = await cloudinary?.getFileUrlFromClaudinary({
+        public_id: data?.file
+      })
       return {
         ...data,
-        file: cloudinary.url(data.file, { secure: true }),
+        file: file_url ,
       };
-    });
+    }))
 
     res.status(200).send({
       status: "success",
@@ -266,12 +259,15 @@ exports.getMyCollections = async (req, res) => {
       raw: true,
       nest: true,
     });
-    lit = lit.map((data) => {
+    lit = await Promise.all(lit.map(async(data) => {
+      const file_url = await cloudinary?.getFileUrlFromClaudinary({
+        public_id: data?.file
+      })
       return {
         ...data,
-        file: cloudinary.url(data.file, { secure: true }),
+        file: file_url ,
       };
-    });
+    }))
     res.status(200).send({
       status: "success",
       data: lit,
@@ -293,23 +289,17 @@ exports.editLit = async (req, res) => {
       where: { id },
     });
     let data;
-    if (req.file) {
-      const input = "uploud/pdf/" + req.file.filename;
-      const name = String(Date.now());
-      // await thumbPDF(input, name)
+    if (req.body.pdf) {
 
-      const filePDF = await cloudinary.uploader.upload(req.file.path, {
-        folder: "pdf",
-        use_filename: true,
-        unique_filename: false,
-      });
-
+      const filePDFUrl  = cloudinary.getFileUrlFromClaudinary({
+        public_id : req.body.pdf
+      })
       data = {
         ...req.body,
-        file: cloudinary.url(filePDF, { secure: true }),
+        file: filePDFUrl ,
       };
 
-      await cloudinary.destroy(litFinded.file, (res) => {});
+      await cloudinary.deleteImageFromCloudinary(litFinded?.file)
     } else {
       data = req.body;
     }
@@ -349,8 +339,8 @@ exports.deleteLit = async (req, res) => {
       where: { id },
     });
 
-    if (litData) {
-      await cloudinary.destroy(litData.file, (res) => {});
+    if (litData?.file) {
+      await cloudinary.deleteImageFromCloudinary(litData?.file)
     }
 
     await literature.destroy({
@@ -373,17 +363,3 @@ exports.deleteLit = async (req, res) => {
   }
 };
 
-exports.downloadLit = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const litFinded = await literature.findOne({
-      where: { id },
-    });
-    res.download("uploud/" + litFinded.file + ".pdf");
-  } catch (error) {
-    res.status(500).send({
-      status: "faild",
-      message: `${error}`,
-    });
-  }
-};

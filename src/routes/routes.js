@@ -12,17 +12,32 @@ router.post('/login',login)
 router.get('/users',auth,getUsers)
 router.get('/profile',auth,getUser)
 router.delete('/user/:id',auth,deleteUser)
-router.patch('/user',auth, uploudFile('image'),updateUser)
+router.patch('/user',auth, uploudFile(
+    {
+        image: {
+            types: ["jpg", "jpeg", "png"],
+            folder: "profile",
+        },
+    }),updateUser)
 router.get('/check-auth',auth,checkAuth)
 
-router.post('/literature',auth,uploudFile('pdf'),addLit)
+router.post('/literature',auth,uploudFile({
+    pdf: {
+        types: ["pdf"],
+        folder: "book",
+    },
+}),addLit)
 router.get('/literatures',auth,getLits) 
 router.get('/literature/:id',auth,getLit)
 router.get('/my-literatures',auth,getMyLits)
 router.get('/my-collections',auth,getMyCollections)
-router.patch('/literature/:id',auth,uploudFile('pdf'),editLit)
+router.patch('/literature/:id',auth,uploudFile({
+    pdf: {
+        types: ["pdf"],
+        folder: "book",
+    },
+}),editLit)
 router.delete('/literature/:id',auth,deleteLit)
-router.get('/download-literature/:id',auth,downloadLit)
 
 router.post('/year',auth,addYear)
 router.get('/years',getYears)
