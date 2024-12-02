@@ -12,6 +12,18 @@ module.exports = {
      * }], {});
     */
 
+    const existingUser = await queryInterface.rawSelect('users', {
+      where: {
+        email: 'admin@gmail.com'
+      }
+    }, ['id']);
+
+    if (existingUser) {
+      await queryInterface.bulkDelete('users', {
+        email: 'admin@gmail.com'
+      });
+    }
+
      await queryInterface.bulkInsert(
        'users',
       [{
